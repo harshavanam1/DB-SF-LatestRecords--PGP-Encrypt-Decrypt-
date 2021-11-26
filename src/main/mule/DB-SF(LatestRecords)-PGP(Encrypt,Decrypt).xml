@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:crypto="http://www.mulesoft.org/schema/mule/crypto" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/crypto http://www.mulesoft.org/schema/mule/crypto/current/mule-crypto.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="2f4cbb64-44c2-4647-a482-a04b0e7716a5" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="32572e36-d8ef-48aa-854e-d6b4909c01f2" basePath="#[vars.basepath]" >
+		<http:request-connection host="#[vars.host]" />
+	</http:request-config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="9b2f1269-9fb5-4a18-8b90-0e052c54881e" >
+		<email:smtp-connection host="smtp.gmail.com" port="587" user="vanamharsha92@gmail.com" password="vhvardhan@6303" >
+			<email:properties >
+				<email:property key="mail.smtp.starttls.enable" value="true" />
+			</email:properties>
+		</email:smtp-connection>
+	</email:smtp-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="bc61d0d4-12ad-496b-b564-1053ee997751" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="harshanani33" database="employee-info" />
+	</db:config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="58aae04f-03e1-427d-a1bf-501adb2466ed" >
+		<salesforce:basic-connection username="vanamharsha92@gmail.com" password="vhvardhan@7533" securityToken="VZXQHWjsPxK2lkrqUZX6kWNF" />
+	</salesforce:sfdc-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="6ea75c6e-9f9c-4da5-894e-840959d639e7" />
+	<http:listener-config name="HTTP_Listener_config1" doc:name="HTTP Listener config" doc:id="8ab62878-0900-4c6e-93e3-2337fa09d75e" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<crypto:pgp-config name="Crypto_Pgp" doc:name="Crypto Pgp" doc:id="3a4ae57a-1391-4c86-934e-6eb4c6f20f6d" publicKeyring="secring.gpg" >
+		<crypto:pgp-key-infos >
+			<crypto:pgp-asymmetric-key-info keyId="harsha" fingerprint="6A8B8A948D530E7E" />
+		</crypto:pgp-key-infos>
+	</crypto:pgp-config>
+	<crypto:pgp-config name="Crypto_Pgp1" doc:name="Crypto Pgp" doc:id="0ec9fe2e-7496-4995-950b-98b21f686656" privateKeyring="sp.privatekey.gpg" >
+		<crypto:pgp-key-infos >
+			<crypto:pgp-asymmetric-key-info keyId="harsha" fingerprint="6A8B8A948D530E7E" passphrase="harshanani33"/>
+		</crypto:pgp-key-infos>
+	</crypto:pgp-config>
+	<flow name="DB-ObjStore-LatestRecords" doc:id="d6e835b7-4fcd-48dd-927d-df59af72f188" >
+		<scheduler doc:name="Scheduler" doc:id="5a0c7e28-51bd-4e9f-aa64-59d6df559242" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="1" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<os:retrieve doc:name="Retrieve" doc:id="d02b3299-e96b-4669-ab81-c6f31fd6d900" key="dbretrieve" target="dbtargetvar" objectStore="Object_store">
+			<os:default-value ><![CDATA[0]]></os:default-value>
+		</os:retrieve>
+		<db:select doc:name="Select" doc:id="d08c4cc9-b5dc-4367-be2f-fbeda0b4f6cc" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM employee where employeeid >:lew]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	lew:vars.dbtargetvar
+}]]]></db:input-parameters>
+		</db:select>
+		<os:store doc:name="Store" doc:id="806aa33d-614e-4693-ad59-c639f3cb3f3b" key="dbretrieve" objectStore="Object_store" failOnNullValue="false">
+			<os:value><![CDATA[#[max(payload map $.employeeid)]]]></os:value>
+		</os:store>
+		<ee:transform doc:name="Transform Message" doc:id="8acd066b-f496-49b6-9596-50644f2c4ce5">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="1a171af9-0ddd-4f0e-ab1a-b378dc05dfa2" message="DB Fetch - - - - - #[payload]"/>
+	</flow>
+	<flow name="Httpreq(timezone)-SendEmail" doc:id="262a2c19-9e1e-4be7-b013-b201c632da2f" >
+		<http:listener doc:name="Listener" doc:id="abfb1333-1e46-4886-97f1-610d2374ed32" config-ref="HTTP_Listener_config" path="/send-email/{region}/{city}"/>
+		<ee:transform doc:name="Transform Message" doc:id="3ecaff7e-7ccb-4099-9f96-e91b8f6f19b4" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="host" ><![CDATA["worldtimeapi.org"]]></ee:set-variable>
+				<ee:set-variable variableName="basepath" ><![CDATA["/api"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="28d8b8c0-76a2-43d7-bbc6-a0145815d306" message="#[correlationId]"/>
+		<set-variable value='#[((attributes.uriParams.region !=lower("ASIA")and attributes.uriParams.city !=lower("KOLKATA"))and (attributes.uriParams.region !=lower("Africa")and attributes.uriParams.city !=lower("Accra")))]' doc:name="Set Variable" doc:id="90beb5b0-27f4-4ceb-aef1-a9c89c5e5cf0" variableName="timezone"/>
+		<choice doc:name="Choice" doc:id="af94e991-0568-4223-8039-0fd912d8c2f9" >
+			<when expression="#[vars.timezone==true]">
+				<http:request method="GET" doc:name="Request" doc:id="8fd5d83f-3499-4968-a468-ac89c387ac17" config-ref="HTTP_Request_configuration" path="/timezone/{region}/{city}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"region" : attributes.uriParams.region,
+	"city":attributes.uriParams.city
+}]]]></http:uri-params>
+		</http:request>
+				<ee:transform doc:name="Transform Message" doc:id="0678fdea-1026-4268-b1a6-b510816f55aa">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+	"Standard Time":payload.abbreviation,
+	"DateTime":(payload.datetime as String default "") ,
+	"Days-in-Year":payload."day_of_year",
+	"Timezone":payload.timezone,
+	"UTC":payload.datetime as DateTime >> "UTC"
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<email:send doc:name="Send" doc:id="e1b43e96-eddb-4809-b964-90939d413115" config-ref="Email_SMTP" fromAddress="vanamharsha92@gmail.com" subject="#[payload.Timezone]">
+			<email:to-addresses>
+				<email:to-address value="vhvardhan12@gmail.com" />
+			</email:to-addresses>
+			<email:body contentType="text/plain" encoding="UTF-8" />
+		</email:send>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="745941a8-c7de-453b-bcba-c0146da1be4c" message="Default"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="72ba17ec-5a9c-4398-8744-974bc0360f68" message="Timezone ------- #[payload]"/>
+	</flow>
+	<flow name="salesforce-ObjStore-latestRecords" doc:id="12987d4b-8eeb-45c0-850f-4f6fe71156e7" >
+		<scheduler doc:name="Scheduler" doc:id="7a897bc1-dab3-4a7f-86af-a1a282e65f2e" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="1" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<logger level="INFO" doc:name="Logger" doc:id="b4b06fc1-9c7c-40f9-9c4e-257a79cf6618" message="initial ----- #[payload]"/>
+		<os:retrieve doc:name="Retrieve" doc:id="3b977c4b-8d04-4b46-883c-50d5dc3efd63" key="lastupdatetimestampkey" objectStore="Object_store" target="lastupdatetimestampv" targetValue="#[payload as String]">
+			<os:default-value ><![CDATA[#[now()]]]></os:default-value>
+		</os:retrieve>
+		<salesforce:query doc:name="Query" doc:id="3ce5aa05-191b-40b6-a0ae-df9346fac707" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[SELECT Id,Name,LastModifiedDate 
+ FROM Contact WHERE LastModifiedDate > :lastUpdateTimestamp]]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/json
+---
+{
+	"lastUpdateTimestamp" : vars.lastupdatetimestampv
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="1cc571b4-b37c-4ac2-a60d-9d5b9205cdd9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="812bb0a5-38db-4609-9626-dfeca0acc0b6" key="lastupdatetimestampkey" failOnNullValue="false">
+			<os:value ><![CDATA[#[max(payload map $.LastModifiedDate)]]]></os:value>
+		</os:store>
+		<logger level="INFO" doc:name="Logger" doc:id="b1efc3db-81ae-4203-930e-0dbc23e77402" message="end  ----- #[payload]"/>
+	</flow>
+	<flow name="PGP-Encryption" doc:id="7fd5c2bb-c297-4ca0-b265-9a445831e919" >
+		<http:listener doc:name="Listener" doc:id="97be26fa-9bcf-4c67-a54c-46af22aa7c0b" config-ref="HTTP_Listener_config1" path="/pgp-encrypt"/>
+		<crypto:pgp-encrypt doc:name="Pgp encrypt" doc:id="35bbce2f-98bb-4961-a49f-cb118d4e4017" config-ref="Crypto_Pgp" keyId="harsha"/>
+		<ee:transform doc:name="Transform Message" doc:id="b8711780-8dea-4365-bf26-f97fbe8b6600" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="78597afe-dd88-4e3d-853f-0195fc7b902c" message="log --- #[payload]"/>
+	</flow>
+	<flow name="PGP-Decryption" doc:id="f640bf36-459b-46d2-8c9b-38f2814fcf73" >
+		<http:listener doc:name="Listener" doc:id="fc25446c-5ef6-46b9-a869-4033fb44ca28" config-ref="HTTP_Listener_config1" path="/decrypt"/>
+		<crypto:pgp-decrypt doc:name="Pgp decrypt" doc:id="bbee61cc-89b9-46aa-8498-f9dfc1072301" config-ref="Crypto_Pgp1"/>
+		<ee:transform doc:name="Transform Message" doc:id="717d3788-924b-4304-b94f-6e2774ec4853" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="57da27a2-81ca-4090-8db3-b5d3e1c8220c" message="decrypt -- - -  -#[payload]"/>
+	</flow>
+</mule>
